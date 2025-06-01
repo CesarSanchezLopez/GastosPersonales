@@ -1,0 +1,109 @@
+﻿@page "/fondosmonetarios"
+@using GastosPersonales.Models
+@using GastosPersonales.Services
+@inject FondoMonetarioService FondoService
+
+<h3>Fondos Monetarios</h3>
+
+@if (fondos == null)
+{
+    <p><em>Cargando...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var fondo in fondos)
+            {
+                <tr>
+                    <td>@fondo.Nombre</td>
+                    <td>@fondo.Descripcion</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning me-1" @onclick="() => Editar(fondo)">Editar</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Eliminar(fondo.Id)">Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h4>@(esEdicion ? "Editar Fondo Monetario" : "Agregar Fondo Monetario")</h4>
+
+    <EditForm Model="fondoActual" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <InputText class="form-control" @bind-Value="fondoActual.Nombre" placeholder="Nombre (Ej: Cuenta Banco X)" />
+        </div>
+        <div class="mb-3">
+            <InputText class="form-control" @bind-Value="fondoActual.Descripcion" placeholder="Descripción" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">@((esEdicion) ? "Actualizar" : "Guardar")</button>
+        @if (esEdicion)
+        {
+            <button type="button" class="btn btn-secondary ms-2" @onclick="CancelarEdicion">Cancelar</button>
+        }
+    </EditForm>
+}
+
+@code {
+    private List<FondoMonetario> fondos;
+    private FondoMonetario fondoActual = new FondoMonetario();
+    private bool esEdicion = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        fondos = await FondoService.GetAllAsync();
+    }
+
+    private async Task Guardar()
+    {
+        if (esEdicion)
+        {
+            await FondoService.UpdateAsync(fondoActual);
+        }
+        else
+        {
+            await FondoService.AddAsync(fondoActual);
+        }
+
+        fondos = await FondoService.GetAllAsync();
+        fondoActual = new FondoMonetario();
+        esEdicion = false;
+
+        StateHasChanged();
+    }
+
+    private void Editar(FondoMonetario fondo)
+    {
+        fondoActual = new FondoMonetario
+            {
+                Id = fondo.Id,
+                Nombre = fondo.Nombre,
+                Descripcion = fondo.Descripcion
+            };
+        esEdicion = true;
+    }
+
+    private async Task Eliminar(int id)
+    {
+        await FondoService.DeleteAsync(id);
+        fondos = await FondoService.GetAllAsync();
+        StateHasChanged();
+    }
+
+    private void CancelarEdicion()
+    {
+        fondoActual = new FondoMonetario();
+        esEdicion = false;
+    }
+}

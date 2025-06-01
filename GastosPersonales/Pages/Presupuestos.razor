@@ -1,0 +1,122 @@
+﻿@page "/presupuestos"
+@using GastosPersonales.Models
+@using GastosPersonales.Services
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject PresupuestoService PresupuestoService
+@inject TipoGastoService TipoGastoService
+
+<h3>Presupuestos</h3>
+
+@if (presupuestos == null || tiposGasto == null)
+{
+    <p><em>Cargando...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Tipo de Gasto</th>
+                <th>Monto</th>
+                <th>Mes</th>
+                <th>Año</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var presupuesto in presupuestos)
+            {
+                <tr>
+                    <td>@presupuesto.TipoGasto.Descripcion</td>
+                    <td>@presupuesto.Monto</td>
+                    <td>@presupuesto.Mes</td>
+                    <td>@presupuesto.Año</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Eliminar(presupuesto.Id)">Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h4>Agregar Presupuesto</h4>
+
+    <EditForm Model="presupuestoActual" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label for="tipoGasto">Tipo de Gasto</label>
+            <InputSelect id="tipoGasto" @bind-Value="presupuestoActual.TipoGastoId" class="form-control">
+                <option value="">Seleccione...</option>
+                @foreach (var tipo in tiposGasto)
+                {
+                    <option value="@tipo.Id">@tipo.Descripcion</option>
+                }
+            </InputSelect>
+        </div>
+
+        <div class="mb-3">
+            <label for="monto">Monto</label>
+            <InputNumber id="monto" @bind-Value="presupuestoActual.Monto" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label for="mes">Mes</label>
+            <InputNumber id="mes" @bind-Value="presupuestoActual.Mes" class="form-control" min="1" max="12" />
+        </div>
+
+        <div class="mb-3">
+            <label for="año">Año</label>
+            <InputNumber id="año" @bind-Value="presupuestoActual.Año" class="form-control" min="2020" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+    </EditForm>
+}
+
+@code {
+    private List<Presupuesto> presupuestos;
+    private Presupuesto presupuestoActual = new Presupuesto();
+    private List<TipoGasto> tiposGasto;
+    private string userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated ?? false)
+        {
+            userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            presupuestos = await PresupuestoService.GetAllAsync(userId);
+            tiposGasto = await TipoGastoService.GetAllAsync();
+        }
+        else
+        {
+            // Manejar caso no autenticado, por ejemplo redirigir o mostrar mensaje
+        }
+    }
+
+    private async Task Guardar()
+    {
+        presupuestoActual.UserId = userId;
+        try
+        {
+            await PresupuestoService.AddAsync(presupuestoActual);
+            presupuestos = await PresupuestoService.GetAllAsync(userId);
+            presupuestoActual = new Presupuesto();
+        }
+        catch (Exception ex)
+        {
+            // Manejar error, mostrar mensaje, etc.
+        }
+    }
+
+    private async Task Eliminar(int id)
+    {
+        await PresupuestoService.DeleteAsync(id);
+        presupuestos = await PresupuestoService.GetAllAsync(userId);
+    }
+}

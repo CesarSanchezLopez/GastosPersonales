@@ -1,0 +1,81 @@
+﻿@page "/consulta-movimientos"
+@using GastosPersonales.Models
+@using GastosPersonales.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@* @attribute [Authorize] *@
+
+@inject DepositoService DepositoService
+@inject RegistroGastoService GastoService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h3>Consulta de Movimientos</h3>
+
+<div class="row mb-3">
+    <div class="col">
+        <label>Desde:</label>
+        <InputDate @bind-Value="fechaDesde" class="form-control" />
+    </div>
+    <div class="col">
+        <label>Hasta:</label>
+        <InputDate @bind-Value="fechaHasta" class="form-control" />
+    </div>
+    <div class="col-auto align-self-end">
+        <button class="btn btn-primary" @onclick="Consultar">Consultar</button>
+    </div>
+</div>
+
+@if (depositos != null && depositos.Any())
+{
+    <h5>Depósitos</h5>
+    <ul class="list-group mb-3">
+        @foreach (var d in depositos)
+        {
+            <li class="list-group-item">
+                <strong>@d.Fecha.ToShortDateString()</strong> -
+                Fondo: @d.FondoMonetario?.Nombre -
+                Monto: <strong>@d.Monto.ToString("C")</strong>
+            </li>
+        }
+    </ul>
+}
+
+@if (gastos != null && gastos.Any())
+{
+    <h5>Gastos</h5>
+    @foreach (var g in gastos)
+    {
+        <div class="card mb-3">
+            <div class="card-header">
+                <strong>@g.Fecha.ToShortDateString()</strong> - @g.NombreComercio (@g.TipoDocumento)
+            </div>
+            <div class="card-body">
+                <p><strong>Fondo:</strong> @g.FondoMonetario?.Nombre</p>
+                <p><strong>Observaciones:</strong> @g.Observaciones</p>
+                <ul>
+                    @foreach (var d in g.Detalles)
+                    {
+                        <li>@d.TipoGasto?.Descripcion: <strong>@d.Monto.ToString("C")</strong></li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private DateTime fechaDesde = DateTime.Today.AddDays(-30);
+    private DateTime fechaHasta = DateTime.Today;
+    private string userId;
+
+    private List<Deposito> depositos = new();
+    private List<RegistroGastoEncabezado> gastos = new();
+
+    private async Task Consultar()
+    {
+        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+        userId = auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        depositos = await DepositoService.GetByUserAndDateRangeAsync(userId, fechaDesde, fechaHasta);
+        gastos = await GastoService.GetByUserAndDateRangeAsync(userId, fechaDesde, fechaHasta);
+    }
+}

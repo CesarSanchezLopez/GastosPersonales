@@ -1,0 +1,85 @@
+﻿@page "/grafico-presupuesto"
+@using GastosPersonales.Models
+@using GastosPersonales.Services
+@using BlazorBootstrap
+@inject RegistroGastoService GastoService
+@inject PresupuestoService PresupuestoService
+
+<h3>Gráfico Comparativo de Presupuesto y Ejecución</h3>
+
+<BarChart @ref="barChart" Height="400" />
+
+@code {
+    private BarChart barChart = default!;
+    private ChartData chartData = new();
+    private BarChartOptions chartOptions = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadChartData();
+        }
+    }
+
+    private async Task LoadChartData()
+    {
+        var tiposGasto = await GastoService.GetTiposGastoAsync();
+        var presupuestos = await PresupuestoService.GetPresupuestosAsync();
+        var gastos = await GastoService.GetGastosAsync();
+
+        var labels = tiposGasto.Select(t => t.Descripcion).ToList();
+        var presupuestoData = tiposGasto.Select(t => presupuestos.FirstOrDefault(p => p.TipoGastoId == t.Id)?.Monto ?? 0).ToList();
+        var gastoData = tiposGasto.Select(t => gastos.Where(g => g.TipoGastoId == t.Id).Sum(g => g.Monto)).ToList();
+
+        chartData = new ChartData
+        {
+            Labels = labels,
+            Datasets = new List<IChartDataset>
+            {
+                new BarChartDataset
+                {
+                    Label = "Presupuesto",
+                    Data = presupuestoData,
+                    BackgroundColor = "rgba(75, 192, 192, 0.2)",
+                    BorderColor = "rgba(75, 192, 192, 1)",
+                    BorderWidth = 1
+                },
+                new BarChartDataset
+                {
+                    Label = "Ejecutado",
+                    Data = gastoData,
+                    BackgroundColor = "rgba(153, 102, 255, 0.2)",
+                    BorderColor = "rgba(153, 102, 255, 1)",
+                    BorderWidth = 1
+                }
+            }
+        };
+
+        chartOptions = new BarChartOptions
+        {
+            Responsive = true,
+            Scales = new ChartScales
+            {
+                X = new ChartAxis
+                {
+                    Title = new ChartAxesTitle { Text = "Tipo de Gasto", Display = true }
+                },
+                Y = new ChartAxis
+                {
+                    Title = new ChartAxesTitle { Text = "Monto", Display = true }
+                }
+            },
+            Plugins = new ChartPlugins
+            {
+                Title = new ChartTitle
+                {
+                    Display = true,
+                    Text = "Comparativo de Presupuesto vs Ejecución"
+                }
+            }
+        };
+
+        await barChart.InitializeAsync(chartData, chartOptions);
+    }
+}

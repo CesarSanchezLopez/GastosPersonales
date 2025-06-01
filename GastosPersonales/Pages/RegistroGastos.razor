@@ -1,0 +1,189 @@
+﻿@page "/registro-gastos"
+@using GastosPersonales.Models
+@using GastosPersonales.Services
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject RegistroGastoService GastoService
+@inject TipoGastoService TipoGastoService
+@inject FondoMonetarioService FondoMonetarioService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h3>Registro de Gastos</h3>
+
+@if (mensajeError != null)
+{
+    <div class="alert alert-danger">@mensajeError</div>
+}
+
+@if (fondos == null || tipos == null)
+{
+    <p><em>Cargando datos...</em></p>
+}
+else if (fondos.Count == 0)
+{
+    <div class="alert alert-warning">
+        No hay fondos monetarios disponibles. Por favor cree uno antes de registrar gastos.
+    </div>
+}
+else
+{
+    <EditForm Model="registro" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <InputDate class="form-control mb-2" @bind-Value="registro.Fecha" />
+        <InputText class="form-control mb-2" placeholder="Nombre del Comercio" @bind-Value="registro.NombreComercio" />
+        <InputText class="form-control mb-2" placeholder="Observaciones" @bind-Value="registro.Observaciones" />
+
+        <InputSelect class="form-control mb-2" @bind-Value="registro.TipoDocumento">
+            <option value="">Tipo Documento</option>
+            <option value="Comprobante">Comprobante</option>
+            <option value="Factura">Factura</option>
+            <option value="Otro">Otro</option>
+        </InputSelect>
+
+        <InputSelect class="form-control mb-3" @bind-Value="registro.FondoMonetarioId">
+            <option value="">Seleccione Fondo</option>
+            @foreach (var fondo in fondos)
+            {
+                <option value="@fondo.Id">@fondo.Nombre</option>
+            }
+        </InputSelect>
+
+        <h5>Detalles del Gasto</h5>
+        @foreach (var detalle in registro.Detalles)
+        {
+            <div class="row mb-2">
+                <div class="col">
+                    <InputSelect class="form-control" @bind-Value="detalle.TipoGastoId">
+                        <option value="">Tipo de Gasto</option>
+                        @foreach (var tipo in tipos)
+                        {
+                            <option value="@tipo.Id">@tipo.Descripcion</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col">
+                    <InputNumber class="form-control" @bind-Value="detalle.Monto" placeholder="Monto" />
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-danger" type="button" @onclick="() => QuitarDetalle(detalle)">X</button>
+                </div>
+            </div>
+        }
+
+        <button class="btn btn-secondary" type="button" @onclick="AgregarDetalle">Agregar Detalle</button>
+        <button class="btn btn-primary mt-3" type="submit">Guardar</button>
+    </EditForm>
+}
+
+@if (registros != null && registros.Any())
+{
+    <hr />
+    <h4>Gastos Registrados</h4>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Nombre Comercio</th>
+                <th>Tipo Documento</th>
+                <th>Fondo</th>
+                <th>Observaciones</th>
+                <th>Detalles</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in registros)
+            {
+                <tr>
+                    <td>@r.Fecha.ToShortDateString()</td>
+                    <td>@r.NombreComercio</td>
+                    <td>@r.TipoDocumento</td>
+                    <td>@r.FondoMonetario?.Nombre</td>
+                    <td>@r.Observaciones</td>
+                    <td>
+                        <ul class="mb-0">
+                            @foreach (var d in r.Detalles)
+                            {
+                                <li>@d.TipoGasto?.Descripcion: <strong>@d.Monto.ToString("C")</strong></li>
+                            }
+                        </ul>
+                    </td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" @onclick="() => EliminarRegistro(r.Id)">Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private RegistroGastoEncabezado registro = new() { Fecha = DateTime.Today, Detalles = new() };
+    private List<TipoGasto> tipos = new();
+    private List<FondoMonetario> fondos = new();
+    private List<RegistroGastoEncabezado> registros = new();
+    private string mensajeError;
+    private string userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = auth.User;
+            userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            registro.UserId = userId;
+
+            tipos = await TipoGastoService.GetAllAsync();
+            fondos = await FondoMonetarioService.GetAllAsync();
+            registros = await GastoService.GetAllByUserAsync(userId);
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar datos: {ex.Message}";
+        }
+    }
+
+    private void AgregarDetalle()
+    {
+        registro.Detalles.Add(new RegistroGastoDetalle());
+    }
+
+    private void QuitarDetalle(RegistroGastoDetalle detalle)
+    {
+        registro.Detalles.Remove(detalle);
+    }
+
+    private async Task Guardar()
+    {
+        mensajeError = null;
+        var result = await GastoService.AddAsync(registro);
+
+        if (result == "OK")
+        {
+            registro = new RegistroGastoEncabezado { Fecha = DateTime.Today, Detalles = new(), UserId = userId };
+            registros = await GastoService.GetAllByUserAsync(userId);
+        }
+        else
+        {
+            mensajeError = result;
+        }
+    }
+
+    private async Task EliminarRegistro(int id)
+    {
+        mensajeError = null;
+        try
+        {
+            await GastoService.DeleteAsync(id);
+            registros = await GastoService.GetAllByUserAsync(userId);
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al eliminar el registro: {ex.Message}";
+        }
+    }
+}

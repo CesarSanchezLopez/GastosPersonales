@@ -1,0 +1,107 @@
+﻿@page "/tiposgasto"
+@using GastosPersonales.Models
+@using GastosPersonales.Services
+@inject TipoGastoService TipoGastoService
+
+
+<h3>Tipos de Gasto</h3>
+
+@if (tipos == null)
+{
+    <p><em>Cargando...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Descripción</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var tipo in tipos)
+            {
+                <tr>
+                    <td>@tipo.Codigo</td>
+                    <td>@tipo.Descripcion</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning me-1" @onclick="() => Editar(tipo)">Editar</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Eliminar(tipo.Id)">Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h4>@(esEdicion ? "Editar Tipo de Gasto" : "Agregar Tipo de Gasto")</h4>
+
+    <EditForm Model="tipoActual" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <InputText class="form-control" @bind-Value="tipoActual.Descripcion" placeholder="Descripción" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">@((esEdicion) ? "Actualizar" : "Guardar")</button>
+        @if (esEdicion)
+        {
+            <button type="button" class="btn btn-secondary ms-2" @onclick="CancelarEdicion">Cancelar</button>
+        }
+    </EditForm>
+}
+
+@code {
+    private List<TipoGasto> tipos;
+    private TipoGasto tipoActual = new TipoGasto();
+    private bool esEdicion = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tipos = await TipoGastoService.GetAllAsync();
+    }
+
+    private async Task Guardar()
+    {
+        if (esEdicion)
+        {
+            // Solo actualizar descripción, código y Id ya están fijos
+            await TipoGastoService.UpdateAsync(tipoActual);
+        }
+        else
+        {
+            tipoActual.Codigo = $"TG{(tipos.Count + 1):D3}";
+            await TipoGastoService.AddAsync(tipoActual);
+        }
+
+        tipos = await TipoGastoService.GetAllAsync();
+        tipoActual = new TipoGasto();
+        esEdicion = false;
+    }
+
+    private void Editar(TipoGasto tipo)
+    {
+        // En vez de crear una nueva instancia, clonamos para evitar tracking
+        tipoActual = new TipoGasto
+            {
+                Id = tipo.Id,
+                Codigo = tipo.Codigo,
+                Descripcion = tipo.Descripcion
+            };
+        esEdicion = true;
+    }
+
+    private async Task Eliminar(int id)
+    {
+        await TipoGastoService.DeleteAsync(id);
+        tipos = await TipoGastoService.GetAllAsync();
+    }
+
+    private void CancelarEdicion()
+    {
+        tipoActual = new TipoGasto();
+        esEdicion = false;
+    }
+}

@@ -1,0 +1,97 @@
+﻿@page "/depositos"
+@using GastosPersonales.Models
+@using GastosPersonales.Services
+@inject DepositoService DepositoService
+@inject FondoMonetarioService FondoService
+@inject AuthenticationStateProvider AuthProvider
+
+<h3>Depósitos</h3>
+
+@if (depositos == null || fondos == null)
+{
+    <p><em>Cargando...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Fondo</th>
+                <th>Monto</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var dep in depositos)
+            {
+                <tr>
+                    <td>@dep.Fecha.ToShortDateString()</td>
+                    <td>@dep.FondoMonetario?.Nombre</td>
+                    <td>@dep.Monto.ToString("C")</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Eliminar(dep.Id)">Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h4>Agregar Depósito</h4>
+
+    <EditForm Model="nuevoDeposito" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <InputDate class="form-control" @bind-Value="nuevoDeposito.Fecha" />
+        </div>
+        <div class="mb-3">
+            <InputSelect class="form-control" @bind-Value="nuevoDeposito.FondoMonetarioId">
+                <option value="">-- Seleccione Fondo --</option>
+                @foreach (var fondo in fondos)
+                {
+                    <option value="@fondo.Id">@fondo.Nombre</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <InputNumber class="form-control" @bind-Value="nuevoDeposito.Monto" placeholder="Monto" />
+        </div>
+
+        <button class="btn btn-primary" type="submit">Guardar</button>
+    </EditForm>
+}
+
+@code {
+    private List<Deposito> depositos;
+    private List<FondoMonetario> fondos;
+    private Deposito nuevoDeposito = new() { Fecha = DateTime.Today };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var userId = authState.User?.Identity?.Name ?? "anon"; // Usa ID si usas GUIDs
+
+        fondos = await FondoService.GetAllAsync();
+        depositos = await DepositoService.GetAllAsync();
+        nuevoDeposito.UserId = userId;
+    }
+
+    private async Task Guardar()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var userId = authState.User?.Identity?.Name ?? "anon";
+
+        nuevoDeposito.UserId = userId;
+        await DepositoService.AddAsync(nuevoDeposito);
+        depositos = await DepositoService.GetAllAsync();
+        nuevoDeposito = new() { Fecha = DateTime.Today };
+    }
+
+    private async Task Eliminar(int id)
+    {
+        await DepositoService.DeleteAsync(id);
+        depositos = await DepositoService.GetAllAsync();
+    }
+}
