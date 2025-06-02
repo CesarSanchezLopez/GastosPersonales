@@ -1,3 +1,6 @@
+using Blazorise;
+using Blazorise.Bootstrap;
+using Blazorise.Icons.FontAwesome;
 using GastosPersonales.Areas.Identity;
 using GastosPersonales.Data;
 using GastosPersonales.Services;
@@ -29,6 +32,11 @@ builder.Services.AddScoped<DepositoService>();
 builder.Services.AddScoped<PresupuestoService>();
 builder.Services.AddScoped<RegistroGastoService>();
 
+builder.Services
+    .AddBlazorise(options => { options.Immediate = true; })
+    .AddBootstrapProviders()
+    .AddFontAwesomeIcons();
+
 
 var app = builder.Build();
 
@@ -57,7 +65,10 @@ app.MapRazorPages();
 
 app.MapControllers();
 
+
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
+
+
 
 app.Run();

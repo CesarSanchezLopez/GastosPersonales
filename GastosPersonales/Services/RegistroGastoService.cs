@@ -37,13 +37,13 @@ namespace GastosPersonales.Services
                                     d.RegistroGastoEncabezado.Fecha.Year == encabezado.Fecha.Year)
                         .SumAsync(d => d.Monto);
 
-                    var disponible = presupuesto?.Monto ?? 0;
+                    var disponible = presupuesto?.Monto ?? 0m;  // Asegurar decimal
                     var futuroTotal = totalGastado + detalle.Monto;
 
                     if (futuroTotal > disponible)
                     {
-                        errores.Add($"Presupuesto sobregirado para {detalle.TipoGasto?.Descripcion ?? "tipo de gasto ID " + detalle.TipoGastoId}: " +
-                                    $"Presupuesto: {disponible}, Gastado + nuevo: {futuroTotal}");
+                        errores.Add($"Presupuesto sobregirado para {(detalle.TipoGasto?.Descripcion ?? "tipo de gasto ID " + detalle.TipoGastoId)}: " +
+                                    $"Presupuesto: {disponible:C}, Gastado + nuevo: {futuroTotal:C}");
                     }
                 }
 
@@ -73,7 +73,7 @@ namespace GastosPersonales.Services
                 .ToListAsync();
         }
 
-        public async Task<RegistroGastoEncabezado> GetByIdAsync(int id)
+        public async Task<RegistroGastoEncabezado?> GetByIdAsync(int id)
         {
             return await _context.RegistroGastoEncabezados
                 .Include(r => r.FondoMonetario)
@@ -94,9 +94,7 @@ namespace GastosPersonales.Services
 
                 if (registro != null)
                 {
-                    // Eliminar detalles primero
                     _context.RegistroGastoDetalles.RemoveRange(registro.Detalles);
-                    // Eliminar encabezado
                     _context.RegistroGastoEncabezados.Remove(registro);
 
                     await _context.SaveChangesAsync();
@@ -110,7 +108,7 @@ namespace GastosPersonales.Services
             }
         }
 
-        //Para pagina consulta de movimientos
+        // Para la página Consulta de Movimientos
         public async Task<List<RegistroGastoEncabezado>> GetByUserAndDateRangeAsync(string userId, DateTime desde, DateTime hasta)
         {
             return await _context.RegistroGastoEncabezados
@@ -121,14 +119,24 @@ namespace GastosPersonales.Services
                 .OrderByDescending(r => r.Fecha)
                 .ToListAsync();
         }
-        //Para Grafico de Gastos
+
+        // Para Gráfico de Gastos: detalles para sumar montos
+        public async Task<List<RegistroGastoDetalle>> GetGastosDetalleAsync()
+        {
+            return await _context.RegistroGastoDetalles
+                .Include(g => g.TipoGasto)
+                .ToListAsync();
+        }
+
+        // Para obtener encabezados con detalles
         public async Task<List<RegistroGastoEncabezado>> GetGastosAsync()
         {
             return await _context.RegistroGastoEncabezados
-              .Include(r => r.Detalles)
-              .ThenInclude(d => d.TipoGasto)
+                .Include(r => r.Detalles)
+                    .ThenInclude(d => d.TipoGasto)
                 .ToListAsync();
         }
+
         public async Task<List<TipoGasto>> GetTiposGastoAsync()
         {
             return await _context.TiposGasto.ToListAsync();

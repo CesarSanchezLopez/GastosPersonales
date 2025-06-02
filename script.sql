@@ -6,10 +6,10 @@ BEGIN
         CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
     );
 END;
-GO
+
 
 BEGIN TRANSACTION;
-GO
+
 
 CREATE TABLE [AspNetRoles] (
     [Id] nvarchar(450) NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE [AspNetRoles] (
     [ConcurrencyStamp] nvarchar(max) NULL,
     CONSTRAINT [PK_AspNetRoles] PRIMARY KEY ([Id])
 );
-GO
+
 
 CREATE TABLE [AspNetUsers] (
     [Id] nvarchar(450) NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE [AspNetUsers] (
     [AccessFailedCount] int NOT NULL,
     CONSTRAINT [PK_AspNetUsers] PRIMARY KEY ([Id])
 );
-GO
+
 
 CREATE TABLE [AspNetRoleClaims] (
     [Id] int NOT NULL IDENTITY,
@@ -48,7 +48,7 @@ CREATE TABLE [AspNetRoleClaims] (
     CONSTRAINT [PK_AspNetRoleClaims] PRIMARY KEY ([Id]),
     CONSTRAINT [FK_AspNetRoleClaims_AspNetRoles_RoleId] FOREIGN KEY ([RoleId]) REFERENCES [AspNetRoles] ([Id]) ON DELETE CASCADE
 );
-GO
+
 
 CREATE TABLE [AspNetUserClaims] (
     [Id] int NOT NULL IDENTITY,
@@ -58,7 +58,7 @@ CREATE TABLE [AspNetUserClaims] (
     CONSTRAINT [PK_AspNetUserClaims] PRIMARY KEY ([Id]),
     CONSTRAINT [FK_AspNetUserClaims_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE CASCADE
 );
-GO
+
 
 CREATE TABLE [AspNetUserLogins] (
     [LoginProvider] nvarchar(128) NOT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE [AspNetUserLogins] (
     CONSTRAINT [PK_AspNetUserLogins] PRIMARY KEY ([LoginProvider], [ProviderKey]),
     CONSTRAINT [FK_AspNetUserLogins_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE CASCADE
 );
-GO
+
 
 CREATE TABLE [AspNetUserRoles] (
     [UserId] nvarchar(450) NOT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE [AspNetUserRoles] (
     CONSTRAINT [FK_AspNetUserRoles_AspNetRoles_RoleId] FOREIGN KEY ([RoleId]) REFERENCES [AspNetRoles] ([Id]) ON DELETE CASCADE,
     CONSTRAINT [FK_AspNetUserRoles_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE CASCADE
 );
-GO
+
 
 CREATE TABLE [AspNetUserTokens] (
     [UserId] nvarchar(450) NOT NULL,
@@ -87,48 +87,48 @@ CREATE TABLE [AspNetUserTokens] (
     CONSTRAINT [PK_AspNetUserTokens] PRIMARY KEY ([UserId], [LoginProvider], [Name]),
     CONSTRAINT [FK_AspNetUserTokens_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE CASCADE
 );
-GO
+
 
 CREATE INDEX [IX_AspNetRoleClaims_RoleId] ON [AspNetRoleClaims] ([RoleId]);
-GO
+
 
 CREATE UNIQUE INDEX [RoleNameIndex] ON [AspNetRoles] ([NormalizedName]) WHERE [NormalizedName] IS NOT NULL;
-GO
+
 
 CREATE INDEX [IX_AspNetUserClaims_UserId] ON [AspNetUserClaims] ([UserId]);
-GO
+
 
 CREATE INDEX [IX_AspNetUserLogins_UserId] ON [AspNetUserLogins] ([UserId]);
-GO
+
 
 CREATE INDEX [IX_AspNetUserRoles_RoleId] ON [AspNetUserRoles] ([RoleId]);
-GO
+
 
 CREATE INDEX [EmailIndex] ON [AspNetUsers] ([NormalizedEmail]);
-GO
+
 
 CREATE UNIQUE INDEX [UserNameIndex] ON [AspNetUsers] ([NormalizedUserName]) WHERE [NormalizedUserName] IS NOT NULL;
-GO
+
 
 INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
 VALUES (N'00000000000000_CreateIdentitySchema', N'7.0.20');
-GO
+
 
 COMMIT;
-GO
+
 
 BEGIN TRANSACTION;
-GO
+
 
 INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
 VALUES (N'20250531214946_InitialIdentity', N'7.0.20');
-GO
+
 
 COMMIT;
-GO
+
 
 BEGIN TRANSACTION;
-GO
+
 
 CREATE TABLE [FondosMonetarios] (
     [Id] int NOT NULL IDENTITY,
@@ -136,7 +136,7 @@ CREATE TABLE [FondosMonetarios] (
     [Descripcion] nvarchar(max) NOT NULL,
     CONSTRAINT [PK_FondosMonetarios] PRIMARY KEY ([Id])
 );
-GO
+
 
 CREATE TABLE [TiposGasto] (
     [Id] int NOT NULL IDENTITY,
@@ -144,7 +144,7 @@ CREATE TABLE [TiposGasto] (
     [Descripcion] nvarchar(max) NOT NULL,
     CONSTRAINT [PK_TiposGasto] PRIMARY KEY ([Id])
 );
-GO
+
 
 CREATE TABLE [Depositos] (
     [Id] int NOT NULL IDENTITY,
@@ -155,7 +155,7 @@ CREATE TABLE [Depositos] (
     CONSTRAINT [PK_Depositos] PRIMARY KEY ([Id]),
     CONSTRAINT [FK_Depositos_FondosMonetarios_FondoMonetarioId] FOREIGN KEY ([FondoMonetarioId]) REFERENCES [FondosMonetarios] ([Id]) ON DELETE CASCADE
 );
-GO
+
 
 CREATE TABLE [RegistroGastoEncabezados] (
     [Id] int NOT NULL IDENTITY,
@@ -168,7 +168,7 @@ CREATE TABLE [RegistroGastoEncabezados] (
     CONSTRAINT [PK_RegistroGastoEncabezados] PRIMARY KEY ([Id]),
     CONSTRAINT [FK_RegistroGastoEncabezados_FondosMonetarios_FondoMonetarioId] FOREIGN KEY ([FondoMonetarioId]) REFERENCES [FondosMonetarios] ([Id]) ON DELETE CASCADE
 );
-GO
+
 
 CREATE TABLE [Presupuestos] (
     [Id] int NOT NULL IDENTITY,
@@ -180,7 +180,7 @@ CREATE TABLE [Presupuestos] (
     CONSTRAINT [PK_Presupuestos] PRIMARY KEY ([Id]),
     CONSTRAINT [FK_Presupuestos_TiposGasto_TipoGastoId] FOREIGN KEY ([TipoGastoId]) REFERENCES [TiposGasto] ([Id]) ON DELETE CASCADE
 );
-GO
+
 
 CREATE TABLE [RegistroGastoDetalles] (
     [Id] int NOT NULL IDENTITY,
@@ -191,37 +191,37 @@ CREATE TABLE [RegistroGastoDetalles] (
     CONSTRAINT [FK_RegistroGastoDetalles_RegistroGastoEncabezados_RegistroGastoEncabezadoId] FOREIGN KEY ([RegistroGastoEncabezadoId]) REFERENCES [RegistroGastoEncabezados] ([Id]) ON DELETE CASCADE,
     CONSTRAINT [FK_RegistroGastoDetalles_TiposGasto_TipoGastoId] FOREIGN KEY ([TipoGastoId]) REFERENCES [TiposGasto] ([Id]) ON DELETE CASCADE
 );
-GO
+
 
 CREATE INDEX [IX_Depositos_FondoMonetarioId] ON [Depositos] ([FondoMonetarioId]);
-GO
+
 
 CREATE INDEX [IX_Presupuestos_TipoGastoId] ON [Presupuestos] ([TipoGastoId]);
-GO
+
 
 CREATE INDEX [IX_RegistroGastoDetalles_RegistroGastoEncabezadoId] ON [RegistroGastoDetalles] ([RegistroGastoEncabezadoId]);
-GO
+
 
 CREATE INDEX [IX_RegistroGastoDetalles_TipoGastoId] ON [RegistroGastoDetalles] ([TipoGastoId]);
-GO
+
 
 CREATE INDEX [IX_RegistroGastoEncabezados_FondoMonetarioId] ON [RegistroGastoEncabezados] ([FondoMonetarioId]);
-GO
+
 
 INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
 VALUES (N'20250531222116_InitialModels', N'7.0.20');
-GO
+
 
 COMMIT;
-GO
+
 
 BEGIN TRANSACTION;
-GO
+
 
 INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
 VALUES (N'20250531222507_AjusteDecimales', N'7.0.20');
-GO
+
 
 COMMIT;
-GO
+
 

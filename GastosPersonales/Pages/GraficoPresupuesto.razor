@@ -1,7 +1,68 @@
 ﻿@page "/grafico-presupuesto"
+@using Blazorise
+@using Blazorise.Charts
 @using GastosPersonales.Models
 @using GastosPersonales.Services
+@inject RegistroGastoService GastoService
+@inject PresupuestoService PresupuestoService
+
+<h3>Gráfico Comparativo de Presupuesto y Ejecución</h3>
+
+<BarChart TItem="double" @ref="barChart" Class="mb-4" />
+
+@code {
+    private BarChart<double> barChart = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        var tipos = await GastoService.GetTiposGastoAsync();
+        var presupuestos = await PresupuestoService.GetPresupuestosAsync();
+        var gastos = await GastoService.GetGastosDetalleAsync();
+
+        var labels = tipos.Select(t => t.Descripcion).ToArray();
+        var presupuestoData = tipos.Select(t =>
+            (double)presupuestos.Where(p => p.TipoGastoId == t.Id).Sum(p => p.Monto)).ToList();
+        var gastoData = tipos.Select(t =>
+            (double)gastos.Where(g => g.TipoGastoId == t.Id).Sum(g => g.Monto)).ToList();
+
+        await barChart.Clear();
+        await barChart.AddLabels(labels);
+
+        await barChart.AddDataSet(new BarChartDataset<double>
+            {
+                Label = "Presupuesto",
+                Data = presupuestoData,
+                BackgroundColor = "rgba(54, 162, 235, 0.6)",
+                BorderColor = "rgba(54, 162, 235, 1)",
+                BorderWidth = 1
+            });
+
+        await barChart.AddDataSet(new BarChartDataset<double>
+            {
+                Label = "Ejecutado",
+                Data = gastoData,
+                BackgroundColor = "rgba(255, 99, 132, 0.6)",
+                BorderColor = "rgba(255, 99, 132, 1)",
+                BorderWidth = 1
+            });
+
+        await barChart.Update();
+    }
+}
+
+@* @using GastosPersonales.Models
+@using GastosPersonales.Services
 @using BlazorBootstrap
+@using BlazorBootstrap.Charts;
+
 @inject RegistroGastoService GastoService
 @inject PresupuestoService PresupuestoService
 
@@ -24,62 +85,76 @@
 
     private async Task LoadChartData()
     {
+        // Obtener datos
         var tiposGasto = await GastoService.GetTiposGastoAsync();
         var presupuestos = await PresupuestoService.GetPresupuestosAsync();
-        var gastos = await GastoService.GetGastosAsync();
+        var gastos = await GastoService.GetGastosDetalleAsync(); // Usamos el detalle de gastos
 
+        // Ejes
         var labels = tiposGasto.Select(t => t.Descripcion).ToList();
-        var presupuestoData = tiposGasto.Select(t => presupuestos.FirstOrDefault(p => p.TipoGastoId == t.Id)?.Monto ?? 0).ToList();
-        var gastoData = tiposGasto.Select(t => gastos.Where(g => g.TipoGastoId == t.Id).Sum(g => g.Monto)).ToList();
 
+        // Convertir decimal a double? (nullable double)
+        var presupuestoData = tiposGasto
+            .Select(t => (double?)presupuestos
+                .Where(p => p.TipoGastoId == t.Id)
+                .Sum(p => p.Monto))
+            .ToList();
+
+        var gastoData = tiposGasto
+            .Select(t => (double?)gastos
+                .Where(g => g.TipoGastoId == t.Id)
+                .Sum(g => g.Monto))
+            .ToList();
+
+        // Dataset
         chartData = new ChartData
-        {
-            Labels = labels,
-            Datasets = new List<IChartDataset>
+            {
+                Labels = labels,
+                Datasets = new List<IChartDataset>
             {
                 new BarChartDataset
                 {
                     Label = "Presupuesto",
                     Data = presupuestoData,
-                    BackgroundColor = "rgba(75, 192, 192, 0.2)",
-                    BorderColor = "rgba(75, 192, 192, 1)",
-                    BorderWidth = 1
+                    BackgroundColor = new List<string> { "rgba(75, 192, 192, 0.5)" },
+                    BorderColor = new List<string> { "rgba(75, 192, 192, 1)" },
+                    BorderWidth = new List<double> { 1 }
                 },
                 new BarChartDataset
                 {
                     Label = "Ejecutado",
                     Data = gastoData,
-                    BackgroundColor = "rgba(153, 102, 255, 0.2)",
-                    BorderColor = "rgba(153, 102, 255, 1)",
-                    BorderWidth = 1
+                    BackgroundColor = new List<string> { "rgba(255, 99, 132, 0.5)" },
+                    BorderColor = new List<string> { "rgba(255, 99, 132, 1)" },
+                    BorderWidth = new List<double> { 1 }
                 }
             }
-        };
+            };
 
         chartOptions = new BarChartOptions
-        {
-            Responsive = true,
-            Scales = new ChartScales
             {
-                X = new ChartAxis
+                Responsive = true,
+                Scales = new ChartScales
                 {
-                    Title = new ChartAxesTitle { Text = "Tipo de Gasto", Display = true }
+                    X = new ChartAxis
+                    {
+                        Title = new ChartAxesTitle { Text = "Tipo de Gasto", Display = true }
+                    },
+                    Y = new ChartAxis
+                    {
+                        Title = new ChartAxesTitle { Text = "Monto", Display = true }
+                    }
                 },
-                Y = new ChartAxis
+                Plugins = new ChartPlugins
                 {
-                    Title = new ChartAxesTitle { Text = "Monto", Display = true }
+                    Title = new ChartTitle
+                    {
+                        Display = true,
+                        Text = "Comparativo de Presupuesto vs Ejecución"
+                    }
                 }
-            },
-            Plugins = new ChartPlugins
-            {
-                Title = new ChartTitle
-                {
-                    Display = true,
-                    Text = "Comparativo de Presupuesto vs Ejecución"
-                }
-            }
-        };
+            };
 
         await barChart.InitializeAsync(chartData, chartOptions);
     }
-}
+} *@
